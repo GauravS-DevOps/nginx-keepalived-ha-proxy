@@ -27,7 +27,7 @@ sudo apt install nginx -y
 sudo service ssh start
 ```
 
-### 3. Modify HTML Page
+### 3. Modify HTML Page (Run on both VMs)
 
 #### On Node-A
 
@@ -58,7 +58,7 @@ curl http://<Node-B-IP>  # Should return "Hello from Node B!"
 * **CPU**: 1 Core
 * **RAM**: 2 GB
 
-### 2. Install NGINX
+### 2. Install NGINX (Run on both VMs)
 
 ```bash
 sudo apt update
@@ -66,7 +66,7 @@ sudo apt install nginx -y
 sudo service ssh start
 ```
 
-### 3. Configure Reverse Proxy
+### 3. Configure Reverse Proxy (Run on both VMs)
 
 #### On both LB VMs:
 
@@ -104,14 +104,14 @@ Hello from Node B!
 
 ## 🔁 Keepalived HA Configuration
 
-### 1. Install Keepalived
+### 1. Install Keepalived (Run on both VMs)
 
 ```bash
 sudo apt update
 sudo apt install keepalived -y
 ```
-
-### 2. Create Config File
+ 
+### 2. Create Config File (Run on both VMs)
 
 ```bash
 sudo nano /etc/keepalived/keepalived.conf
@@ -122,13 +122,13 @@ Paste the contents from:
 * `lb-1.keepalived.conf`
 * `lb-2.keepalived.conf`
 
-### 3. Start the Service
+### 3. Start the Service (Run on both VMs)
 
 ```bash
 sudo service keepalived start
 ```
 
-### 4. Test VIP Failover
+### 4. Test VIP Failover 
 
 * Access the VIP from browser or terminal:
 
@@ -172,4 +172,4 @@ This setup ensures:
 
 ---
 
-Made with ☕ and 💻 by Gaurav
+Made 💻 by Gaurav Singh

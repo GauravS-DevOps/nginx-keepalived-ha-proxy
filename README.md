@@ -1,160 +1,93 @@
-# NGINX High Availability Load Balancer with Keepalived
+# 🛡️ HA NGINX Reverse Proxy with Keepalived + SSL
 
-This guide walks you through the steps to create a highly available reverse proxy setup using NGINX and Keepalived on Ubuntu 22.04 VMs.
+This guide walks you through setting up a **Highly Available NGINX Reverse Proxy** using **Keepalived** for VIP failover and **self-signed SSL certificates** to serve traffic securely over HTTPS.
 
 ---
 
 ## 🔗 Prerequisites
 
-* Download Ubuntu 22.04 ISO: [https://releases.ubuntu.com/22.04/](https://releases.ubuntu.com/22.04/)
-* VirtualBox, VMware, or any hypervisor to run VMs
+- Ubuntu 22.04 ISO
+- VirtualBox, VMware, or any hypervisor
+- 4 VMs:
+  - `Node-A` and `Node-B` (Backends)
+  - `Loadbalancer-1 (LB-1)` and `Loadbalancer-2 (LB-2)` (Reverse Proxies)
+- Private IPs configured manually (same subnet)
 
 ---
 
 ## 🖥️ Backend Node Setup (Node-A and Node-B)
 
-### 1. VM Configuration
-
-* **VM Name**: `Node-A` and `Node-B`
-* **CPU**: 1 Core
-* **RAM**: 2 GB
-
-### 2. Installation & Setup (Run on both VMs)
-
-```bash
-sudo apt update
-sudo apt install nginx -y
-sudo service ssh start
-```
-
-### 3. Modify HTML Page (Run on both VMs)
-
-#### On Node-A
-
-```bash
-echo "<h1>Hello from Node A!</h1>" | sudo tee /var/www/html/index.html
-```
-
-#### On Node-B
-
-```bash
-echo "<h1>Hello from Node B!</h1>" | sudo tee /var/www/html/index.html
-```
-
-### 4. Test Output
-
-```bash
-curl http://<Node-A-IP>  # Should return "Hello from Node A!"
-curl http://<Node-B-IP>  # Should return "Hello from Node B!"
-```
+1. Create 2 Ubuntu 22.04 VMs (Node-A and Node-B)
+2. Install NGINX on both:
+   ```bash
+   sudo apt update
+   sudo apt install nginx -y
+   ```
+3. Modify the default index.html page:
+   - On Node-A: Replace with "Hello from Node A!"
+   - On Node-B: Replace with "Hello from Node B!"
+4. Test each node using curl to confirm it serves the expected content.
 
 ---
 
 ## ⚖️ Load Balancer Setup (LB-1 and LB-2)
 
-### 1. VM Configuration
-
-* **VM Name**: `Loadbalancer-1` and `Loadbalancer-2`
-* **CPU**: 1 Core
-* **RAM**: 2 GB
-
-### 2. Install NGINX (Run on both VMs)
-
-```bash
-sudo apt update
-sudo apt install nginx -y
-sudo service ssh start
-```
-
-### 3. Configure Reverse Proxy (Run on both VMs)
-
-#### On both LB VMs:
-
-```bash
-sudo nano /etc/nginx/sites-available/reverse.conf
-```
-
-Paste the content from the repo files:
-
-* `lb-1.reverse.conf`
-* `lb-2.reverse.conf`
-
-Enable the config:
-
-```bash
-sudo ln -s /etc/nginx/sites-available/reverse.conf /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl restart nginx
-```
-
-### 4. Test Output
-
-```bash
-curl http://192.168.1.41
-curl http://192.168.1.42
-```
-
-Expected output (round-robin):
-
-```
-Hello from Node A!
-Hello from Node B!
-```
+1. Create 2 Ubuntu 22.04 VMs (LB-1 and LB-2)
+2. Install NGINX on both:
+   ```bash
+   sudo apt update
+   sudo apt install nginx -y
+   ```
+3. Copy `reverse.conf` from the repository into `/etc/nginx/sites-available/` on both LBs.
+4. Enable the config using a symbolic link and restart NGINX:
+   ```bash
+   sudo ln -s /etc/nginx/sites-available/reverse.conf /etc/nginx/sites-enabled/
+   sudo nginx -t && sudo systemctl restart nginx
+   ```
 
 ---
 
 ## 🔁 Keepalived HA Configuration
 
-### 1. Install Keepalived (Run on both VMs)
-
-```bash
-sudo apt update
-sudo apt install keepalived -y
-```
- 
-### 2. Create Config File (Run on both VMs)
-
-```bash
-sudo nano /etc/keepalived/keepalived.conf
-```
-
-Paste the contents from:
-
-* `lb-1.keepalived.conf`
-* `lb-2.keepalived.conf`
-
-### 3. Start the Service (Run on both VMs)
-
-```bash
-sudo service keepalived start
-```
-
-### 4. Test VIP Failover 
-
-* Access the VIP from browser or terminal:
-
-```bash
-curl http://192.168.1.100
-```
-
-* Simulate failure by stopping keepalived or powering off `LB-1`
-* `LB-2` should take over the VIP automatically
-
-### 5. Outputs
-
-Refer to the `screenshots` folder:
-
-* `Keepalived-LB-1-VIP-terminal-output.png`
-* `Keepalived-LB-2-VIP-terminal-output.png`
+1. Install Keepalived on both LB-1 and LB-2:
+   ```bash
+   sudo apt install keepalived -y
+   ```
+2. Copy `keepalived.conf` from the repository for each LB (`lb-1.keepalived.conf` and `lb-2.keepalived.conf`)
+3. Start Keepalived on both:
+   ```bash
+   sudo systemctl start keepalived
+   ```
+4. Test VIP failover by accessing `http://<VIP>` and shutting down LB-1 to confirm failover to LB-2.
 
 ---
 
-## ✅ Conclusion
+## 🔐 SSL (HTTPS) Support Using Self-Signed Certificates
 
-This setup ensures:
+1. Generate a self-signed SSL certificate on both LB-1 and LB-2:
+   ```bash
+   sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048    -keyout /etc/ssl/private/nginx-selfsigned.key    -out /etc/ssl/certs/nginx-selfsigned.crt    -subj "/C=IN/ST=Maharashtra/L=Mumbai/O=DevOps/CN=vip.local"
+   ```
+2. Update the `reverse.conf` to support HTTPS (refer to `lb-1.reverse.conf` and `lb-2.reverse.conf` in repo).
+3. Restart NGINX after enabling the updated config.
 
-* Round-robin load balancing between backend nodes
-* Automatic failover using Keepalived
-* A robust and fault-tolerant web service architecture
+---
+
+## ✅ Final Architecture Diagram
+
+```
+CLIENT
+   |
+   |--HTTPS--> [ VIP: 192.168.1.100 ]
+                   |
+          +--------+--------+
+          |                 |
+     [ LB-1 ]         [ LB-2 ]
+          \               /
+           \             /
+            \           /
+           [ Node-A ]  [ Node-B ]
+```
 
 ---
 
@@ -165,11 +98,11 @@ This setup ensures:
 ├── lb-2.reverse.conf
 ├── lb-1.keepalived.conf
 ├── lb-2.keepalived.conf
-└── screenshots
+└── screenshots/
     ├── Keepalived-LB-1-VIP-terminal-output.png
     └── Keepalived-LB-2-VIP-terminal-output.png
 ```
 
 ---
 
-Made 💻 by Gaurav Singh
+✅ **Made with 💻 by Gaurav Singh**
